@@ -1,0 +1,72 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "AWS CloudFormation RDS Template for Postgres",
+
+  "Parameters": {
+    "EndPointName" : {
+     "Description" : "The RDS Endpoint Name",
+      "Type"       : "String",
+      "MinLength"  : "1",
+      "MaxLength"  : "16"
+    },
+    "DBName": {
+      "Description"      : "The database name",
+      "Type"             : "String",
+      "MinLength"        : "1",
+      "MaxLength"        : "64",
+      "AllowedPattern"   : "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription" : "Must begin with a letter and contain only alphanumeric characters."
+    }
+},
+
+"Resources" : {
+
+   "PostgresRDS" : {
+       "Type"       : "AWS::RDS::DBInstance",
+       "Properties" : {
+          "Engine"                  : "postgres",
+          "EngineVersion"           : "9.6.5",
+          "DBInstanceClass"         : "db.r4.large",
+          "MultiAZ"                 : "false",
+          "VPCSecurityGroups"       : [ "sg-05199372" ],
+          "StorageType"             : "io1",
+          "Iops"                    : "1000",
+          "AllocatedStorage"        : "100",
+          "DBInstanceIdentifier"    : { "Ref" : "EndPointName" },
+          "DBName"                  : { "Ref" : "DBName" },
+          "Port"                    : "5432",
+          "MasterUsername"          : "v_dbadmin",
+          "MasterUserPassword"      : "v_dbadmin",
+          "DBSubnetGroupName"       : "devops-use-rds",
+          "PubliclyAccessible"      : "false",
+          "BackupRetentionPeriod"   : "0",
+          "AutoMinorVersionUpgrade" : "true",
+          "Tags"                    : [ 
+            { "Key" : "Source", "Value" : "CF Stack" } 
+          ]
+      },
+      "DeletionPolicy" : "Snapshot"
+    }
+   },
+
+  "Outputs" : {
+    "JDBCConnectionString": {
+      "Description" : "JDBC connection string for database",
+      "Value" : { "Fn::Join": [ "", [ "jdbc:mysql://",
+                                      { "Fn::GetAtt": [ "PostgresRDS", "Endpoint.Address" ] },
+                                      ":",
+                                      { "Fn::GetAtt": [ "PostgresRDS", "Endpoint.Port" ] },
+                                      "/",
+                                      { "Ref": "DBName" }]]}
+    },
+    "DBAddress" : {
+      "Description" : "Address of database endpoint",
+      "Value" : { "Fn::GetAtt": [ "PostgresRDS", "Endpoint.Address" ] }
+    },
+    "DBPort" : {
+      "Description" : "Database endpoint port number",
+      "Value" : { "Fn::GetAtt": [ "PostgresRDS", "Endpoint.Port" ] }
+    }
+  }
+}
