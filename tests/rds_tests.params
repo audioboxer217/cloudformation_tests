@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "EndPointName",
+    "ParameterValue": "presidioTest"
+  },
+  {
+    "ParameterKey": "DBName",
+    "ParameterValue": "presidioTest"
+  }
+]

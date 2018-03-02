@@ -1,0 +1,22 @@
+[
+  {    
+    "ParameterKey": "KeyName",
+    "ParameterValue": "ve-tf-key"
+  },
+  {
+    "ParameterKey": "SSHLocation",
+    "ParameterValue": "0.0.0.0/0"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t2.micro"
+  },
+  {
+    "ParameterKey": "EndPointName",
+    "ParameterValue": "presidioTest"
+  },
+  {
+    "ParameterKey": "DBName",
+    "ParameterValue": "presidioTest"
+  }
+]
