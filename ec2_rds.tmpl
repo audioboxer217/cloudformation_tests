@@ -1,0 +1,124 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "AWS CloudFormation RDS Template for Postgres",
+
+  "Parameters": {
+    "KeyName": {
+      "Description" : "Name of an existing EC2 key pair for SSH access to the EC2 instance.",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "InstanceType" : {
+      "Description" : "EC2 instance type.",
+      "Type" : "String",
+      "Default" : "t2.micro",
+      "AllowedValues" : [ "t2.micro", "t2.small", "t2.medium"]
+    },
+    "SSHLocation" : {
+      "Description" : "The IP address range that can SSH to the EC2 instance.",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "EndPointName" : {
+     "Description" : "The RDS Endpoint Name",
+      "Type"       : "String",
+      "MinLength"  : "1",
+      "MaxLength"  : "16"
+    },
+    "DBName": {
+      "Description"      : "The database name",
+      "Type"             : "String",
+      "MinLength"        : "1",
+      "MaxLength"        : "64",
+      "AllowedPattern"   : "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription" : "Must begin with a letter and contain only alphanumeric characters."
+    }
+},
+
+"Mappings" : {
+  "AWSRegionArch2AMI" : {
+    "us-east-1"      : { "HVM64" : "ami-08842d60" },
+    "us-west-2"      : { "HVM64" : "ami-8786c6b7" },
+    "us-west-1"      : { "HVM64" : "ami-cfa8a18a" },
+    "eu-west-1"      : { "HVM64" : "ami-748e2903" },
+    "ap-southeast-1" : { "HVM64" : "ami-d6e1c584" },
+    "ap-northeast-1" : { "HVM64" : "ami-35072834" },
+    "ap-southeast-2" : { "HVM64" : "ami-fd4724c7" },
+    "sa-east-1"      : { "HVM64" : "ami-956cc688" },
+    "cn-north-1"     : { "HVM64" : "ami-ac57c595" },
+    "eu-central-1"   : { "HVM64" : "ami-b43503a9" }
+  }
+
+},
+
+"Resources" : {
+
+  "EC2Instance" : {
+    "Type" : "AWS::EC2::Instance",
+    "Properties" : {
+      "InstanceType" : { "Ref" : "InstanceType" },
+      "SecurityGroupIds" : [ "sg-05199372" ],
+      "KeyName" : { "Ref" : "KeyName" },
+      "SubnetId" : "subnet-4dc7bf10",
+      "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" }, "HVM64" ] }
+    }
+  },
+  
+  "PostgresRDS" : {
+    "Type"       : "AWS::RDS::DBInstance",
+    "Properties" : {
+      "Engine"                  : "postgres",
+      "EngineVersion"           : "9.6.5",
+      "DBInstanceClass"         : "db.r4.large",
+      "MultiAZ"                 : "false",
+      "VPCSecurityGroups"       : [ "sg-05199372" ],
+      "StorageType"             : "io1",
+      "Iops"                    : "1000",
+      "AllocatedStorage"        : "100",
+      "DBInstanceIdentifier"    : { "Ref" : "EndPointName" },
+      "DBName"                  : { "Ref" : "DBName" },
+      "Port"                    : "5432",
+      "MasterUsername"          : "v_dbadmin",
+      "MasterUserPassword"      : "v_dbadmin",
+      "DBSubnetGroupName"       : "devops-use-rds",
+      "DBParameterGroupName"    : "default.postgres9.6",
+      "PubliclyAccessible"      : "false",
+      "BackupRetentionPeriod"   : "0",
+      "AutoMinorVersionUpgrade" : "true",
+      "Tags"                    : [ 
+        { "Key" : "Source", "Value" : "CF Stack" } 
+      ]
+   },
+   "DeletionPolicy" : "Snapshot"
+ }
+},
+
+  "Outputs" : {
+    "EC2IPAddress" : {
+      "Description" : "IP address of the new EC2 instance",
+      "Value" : { "Fn::GetAtt" : [ "EC2Instance", "PrivateIp" ] }
+    },
+
+    "JDBCConnectionString": {
+      "Description" : "JDBC connection string for database",
+      "Value" : { "Fn::Join": [ "", [ "jdbc:mysql://",
+                                      { "Fn::GetAtt": [ "PostgresRDS", "Endpoint.Address" ] },
+                                      ":",
+                                      { "Fn::GetAtt": [ "PostgresRDS", "Endpoint.Port" ] },
+                                      "/",
+                                      { "Ref": "DBName" }]]}
+    },
+    "DBAddress" : {
+      "Description" : "Address of database endpoint",
+      "Value" : { "Fn::GetAtt": [ "PostgresRDS", "Endpoint.Address" ] }
+    },
+    "DBPort" : {
+      "Description" : "Database endpoint port number",
+      "Value" : { "Fn::GetAtt": [ "PostgresRDS", "Endpoint.Port" ] }
+    }
+  }
+}
